@@ -20,6 +20,12 @@ obj-m := <module_name>.o
 # multiple files
 <module_name>-y := <src1>.o <src2>.o ...
 ccflags-y := -I<include dir>
+
+## rules
+all:
+	make −C /lib/modules/$(shell uname −r)/build M=$(PWD) modules
+clean:
+	make −C /lib/modules/$(shell uname −r)/build M=$(PWD) clean
 ```
 
 ### Init and Exit
@@ -78,6 +84,12 @@ MODULE_PARM_DESC(str, "A character string");
 ```
 ```bash
 insmod hello.ko str="hello world" integer=42
+```
+
+### Watch Kernel logs
+
+```bash
+dmesg -w
 ```
 
 ### Recommended Kernel options
