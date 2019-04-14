@@ -97,3 +97,8 @@ dmesg -w
 ```
 MODULE_FORCE_UNLOAD
 ```
+
+# Further Reading
+
+* [Linux Coding Style](https://www.kernel.org/doc/html/v4.10/process/coding-style.html)
+* [Submitting Patches](https://www.kernel.org/doc/html/v4.10/process/submitting-patches.html)
