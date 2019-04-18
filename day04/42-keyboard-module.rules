@@ -1,0 +1,7 @@
+
+SUBSYSTEM=="input", SUBSYSTEM=="usb", DRIVERS=="atkbd", GOTO="keyboard_module"
+
+LABEL="keyboard_module"
+ACTION=="add", RUN+="/sbin/modprobe keyboard_module"
+ACTION=="remove", RUN+="/sbin/modprobe -r keyboard_module"
+
