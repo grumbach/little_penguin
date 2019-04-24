@@ -1,5 +1,5 @@
 
-SUBSYSTEM=="input", SUBSYSTEM=="usb", DRIVERS=="atkbd", GOTO="keyboard_module"
+SUBSYSTEM=="input", SUBSYSTEM=="usb", ENV{ID_INPUT_KEYBOARD}="1", GOTO="keyboard_module"
 
 LABEL="keyboard_module"
 ACTION=="add", RUN+="/sbin/modprobe keyboard_module"

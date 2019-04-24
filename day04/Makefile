@@ -6,6 +6,6 @@ clean:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
 install: all
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules_install
-	cp -f 42-keyboard-module.rules /etc/udev/rules.d/
+	cp -f *.rules /etc/udev/rules.d/
 uninstall:
-	rm /etc/udev/rules.d/42-keyboard-module.rules
+	rm /etc/udev/rules.d/*.rules

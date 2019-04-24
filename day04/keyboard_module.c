@@ -26,7 +26,7 @@ static void kbd_disconnect(struct usb_interface *interface)
 }
 
 static struct usb_driver kbd_driver = {
-	.name        = "kbd-detect",
+	.name        = "keyboard_module_driver",
 	.probe       = kbd_probe,
 	.disconnect  = kbd_disconnect,
 	.id_table    = kbd_table,
