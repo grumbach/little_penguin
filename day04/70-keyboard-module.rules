@@ -1,7 +1,4 @@
+SUBSYSTEM=="input",  ENV{ID_INPUT_KEYBOARD}="1", ENV{ID_BUS}="usb", GOTO="kbd"
 
-SUBSYSTEM=="input", SUBSYSTEM=="usb", ENV{ID_INPUT_KEYBOARD}="1", GOTO="keyboard_module"
-
-LABEL="keyboard_module"
+LABEL="kbd"
 ACTION=="add", RUN+="/sbin/modprobe keyboard_module"
-ACTION=="remove", RUN+="/sbin/modprobe -r keyboard_module"
-
