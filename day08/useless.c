@@ -55,10 +55,14 @@ static ssize_t myfd_read(struct file *fp,
 		goto fail;
 	if (size > len)
 		size = len;
-	return raw_copy_to_user(user, str, size);
+	if (raw_copy_to_user(user, str, size))
+		goto copyfail;
 
+	return size;
 fail:
 	return -EINVAL;
+copyfail:
+	return -1;
 }
 
 static ssize_t myfd_write(struct file *fp,
@@ -66,17 +70,19 @@ static ssize_t myfd_write(struct file *fp,
 			  size_t size,
 			  loff_t *offs)
 {
-	size_t		ret;
-
 	if (user == NULL)
 		goto fail;
 	if (size >= PAGE_SIZE)
 		size = PAGE_SIZE - 1;
-	ret = raw_copy_from_user(str, user, size);
+	if (raw_copy_from_user(str, user, size))
+		goto copyfail;
+
 	str[size] = '\0';
-	return ret;
+	return size;
 fail:
 	return -EINVAL;
+copyfail:
+	return -1;
 }
 
 module_init(myfd_init);
