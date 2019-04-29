@@ -1,7 +1,11 @@
 # little_penguin
 Linux Kernel module programming assignments
 
-## About Linux Kernel Module Programming
+	[excerpt from Linux Coding style]
+	An infinite number of monkeys typing into GNU emacs
+	would never make a good program.
+
+# About Linux Kernel Module Programming
 
 ### Inserting and Removing (`man lsmod; man insmod; man rmmod`)
 
@@ -96,9 +100,46 @@ dmesg -w
 
 ```
 MODULE_FORCE_UNLOAD
+<M>   Support for Host-side USB
+{M}   HID bus support
+CONFIG_DEBUG_FS
+```
+
+### Kernel Installation for lazy fucks
+
+```bash
+VERSION_NUMBER=`git tag --contains`
+
+# copy kernel and docs
+cp -fv arch/x86/boot/bzImage /boot/vmlinuz-$VERSION_NUMBER-agrumbac
+cp -fv System.map /boot/System.map-$VERSION_NUMBER
+cp -fv .config /boot/config-$VERSION_NUMBER
+install -d /usr/share/doc/linux-$VERSION_NUMBER
+cp -r Documentation/* /usr/share/doc/linux-$VERSION_NUMBER
+
+# creating the GRUB configuration file
+printf "# Begin /boot/grub/grub.cfg\n\
+set default=0\n\
+set timeout=5\n\
+\n\
+insmod ext2\n\
+set root=(hd0,1)\n\
+\n\
+menuentry \"GNU/Linux, Linux $VERSION_NUMBER-lfs-8.4\" {\n\
+        linux   /vmlinuz-$VERSION_NUMBER-agrumbac root=/dev/sda3 ro\n\
+}\n\
+" > /boot/grub/grub.cfg
+
+# showoff
+cat /boot/grub/grub.cfg
+ls -lh --color /boot/vmlinuz-$VERSION_NUMBER-agrumbac
 ```
 
 # Further Reading
 
 * [Linux Coding Style](https://www.kernel.org/doc/html/v4.10/process/coding-style.html)
 * [Submitting Patches](https://www.kernel.org/doc/html/v4.10/process/submitting-patches.html)
+* [Writing usb driver](https://kernel.readthedocs.io/en/sphinx-samples/writing_usb_driver.html)
+* [Matching specific usb devices](https://kernel.readthedocs.io/en/sphinx-samples/usb.html#c.usb_match_id)
+* [Misc character devices](https://www.linuxjournal.com/article/2920)
+* [Install linux-next](https://www.kernel.org/doc/man-pages/linux-next.html)
