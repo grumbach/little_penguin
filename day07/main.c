@@ -66,7 +66,9 @@ static ssize_t foo_read(						\
 		size = fookbuf_used;
 	if (size == 0)
 		goto end;
-	raw_copy_to_user(buf, fookbuf, size);
+	if (raw_copy_to_user(buf, fookbuf, size))
+		return -1;
+	pos += size;
 end:
 	spin_unlock(&x_lock);
 	return size;
@@ -85,8 +87,9 @@ static ssize_t foo_write(						\
 		size = _avail;
 	if (size == 0)
 		goto end;
+	if (raw_copy_from_user(fookbuf + fookbuf_used, buf, size))
+		return -1;
 	fookbuf_used += size;
-	raw_copy_from_user(fookbuf + fookbuf_used, buf, size);
 	pos += size;
 end:
 	spin_unlock(&x_lock);
@@ -104,7 +107,8 @@ static ssize_t jif_read(						\
 	if (size > sizeof(u64))
 		size = sizeof(u64);
 	_jif = get_jiffies_64();
-	raw_copy_to_user(buf, &_jif, size);
+	if (raw_copy_to_user(buf, &_jif, size))
+		return -1;
 	return size;
 }
 
@@ -149,9 +153,9 @@ static int __init init_hello(void)
 	fookbuf = kmalloc(fookbuf_size, GFP_KERNEL);
 	if (fookbuf == (void *)0)
 		goto fail_alloc;
-	_jiffies = debugfs_create_file("jiffies", 0444, dentry, , &jif_ops);
-	foo = debugfs_create_file("foo", 0644, dentry, , &foo_ops);
-	id = debugfs_create_file("id", 0666, dentry, , &id_ops);
+	_jiffies = debugfs_create_file("jiffies", 0444, dentry, 0, &jif_ops);
+	foo = debugfs_create_file("foo", 0644, dentry, 0, &foo_ops);
+	id = debugfs_create_file("id", 0666, dentry, 0, &id_ops);
 	if (_jiffies == DENTRY_NULL ||		\
 	    id == DENTRY_NULL ||		\
 	    foo == DENTRY_NULL)
@@ -172,11 +176,11 @@ static void __exit clean_hello(void)
 #ifdef __CIVILIZED_TIME
 	debugfs_remove_recursive(dentry);
 #else
-	debugfs_remove(dentry);
 	debugfs_remove(_jiffies);
 	debugfs_remove(foo);
 	debugfs_remove(id);
 #endif
+	debugfs_remove(dentry);
 	kfree(fookbuf);
 	printk(KERN_NOTICE "Cleaning up module.\n");
 }
