@@ -1,0 +1,59 @@
+[    1.327404] keyboard_module: loading out-of-tree module taints kernel.
+[    1.327962] Begin looking for keyboards
+[    1.328281] usbcore: registered new interface driver keyboard_module_driver
+[    1.396992] ip (179) used greatest stack depth: 12184 bytes left
+[    1.409729] random: crng init done
+[    1.445982] udevd[204]: starting version 3.2.7
+[    1.494426] udevd[205]: starting eudev-3.2.7
+[    1.698879] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+[    1.700122] ehci-pci: EHCI PCI platform driver
+[    1.700928] ehci-pci 0000:00:0b.0: EHCI Host Controller
+[    1.701282] ehci-pci 0000:00:0b.0: new USB bus registered, assigned bus number 1
+[    1.701932] ehci-pci 0000:00:0b.0: irq 19, io mem 0xf0805000
+[    1.709470] ehci-pci 0000:00:0b.0: USB 2.0 started, EHCI 1.00
+[    1.709920] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002, bcdDevice= 4.20
+[    1.710424] usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    1.711136] usb usb1: Product: EHCI Host Controller
+[    1.711477] usb usb1: Manufacturer: Linux 4.20.12-agrum-thor_kernel ehci_hcd
+[    1.711855] usb usb1: SerialNumber: 0000:00:0b.0
+[    1.713802] hub 1-0:1.0: USB hub found
+[    1.714161] hub 1-0:1.0: 12 ports detected
+[    1.737524] ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+[    1.740249] ohci-pci: OHCI PCI platform driver
+[    1.741112] ohci-pci 0000:00:06.0: OHCI PCI host controller
+[    1.741474] ohci-pci 0000:00:06.0: new USB bus registered, assigned bus number 2
+[    1.742167] ohci-pci 0000:00:06.0: irq 22, io mem 0xf0804000
+[    1.746244] e1000 0000:00:03.0 enp0s3: renamed from eth0
+[    1.796093] usb usb2: New USB device found, idVendor=1d6b, idProduct=0001, bcdDevice= 4.20
+[    1.796723] usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    1.797364] usb usb2: Product: OHCI PCI host controller
+[    1.798548] usb usb2: Manufacturer: Linux 4.20.12-agrum-thor_kernel ohci_hcd
+[    1.799267] usb usb2: SerialNumber: 0000:00:06.0
+[    1.800631] hub 2-0:1.0: USB hub found
+[    1.801158] hub 2-0:1.0: 12 ports detected
+[    2.190148] usb 2-1: new full-speed USB device number 2 using ohci-pci
+[    2.429736] usb 2-1: New USB device found, idVendor=80ee, idProduct=0021, bcdDevice= 1.00
+[    2.430239] usb 2-1: New USB device strings: Mfr=1, Product=3, SerialNumber=0
+[    2.430623] usb 2-1: Product: USB Tablet
+[    2.430982] usb 2-1: Manufacturer: VirtualBox
+[    2.856544] Adding 2097148k swap on /dev/sda2.  Priority:1 extents:1 across:2097148k 
+[    2.872624] EXT4-fs (sda3): re-mounted. Opts: (null)
+[    2.935629] EXT4-fs (sda3): re-mounted. Opts: (null)
+[    2.950532] EXT4-fs (sda1): mounting ext2 file system using the ext4 subsystem
+[    2.961616] EXT4-fs (sda1): warning: mounting unchecked fs, running e2fsck is recommended
+[    2.964442] EXT4-fs (sda1): mounted filesystem without journal. Opts: (null)
+[    3.018509] udevd (212) used greatest stack depth: 12104 bytes left
+[    3.020129] udevd (209) used greatest stack depth: 11848 bytes left
+[    3.928977] hrtimer: interrupt took 5527615 ns
+[    4.019605] IPv6: ADDRCONF(NETDEV_UP): enp0s3: link is not ready
+[    4.022035] e1000: enp0s3 NIC Link is Up 1000 Mbps Full Duplex, Flow Control: RX
+[    4.022804] IPv6: ADDRCONF(NETDEV_CHANGE): enp0s3: link becomes ready
+[   61.887250] usb 2-2: new full-speed USB device number 3 using ohci-pci
+[   62.160760] usb 2-2: New USB device found, idVendor=05ac, idProduct=024f, bcdDevice= 0.74
+[   62.161240] usb 2-2: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[   62.161596] usb 2-2: Product: Apple Keyboard
+[   62.161954] usb 2-2: Manufacturer: Apple Inc.
+[   62.166534] Hello keyboard !
+[   78.315340] usb 2-2: USB disconnect, device number 3
+[   78.315823] Goodbye keyboard !
+

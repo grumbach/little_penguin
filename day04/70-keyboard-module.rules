@@ -1,0 +1,4 @@
+SUBSYSTEM=="input",  ENV{ID_INPUT_KEYBOARD}="1", ENV{ID_BUS}="usb", GOTO="kbd"
+
+LABEL="kbd"
+ACTION=="add", RUN+="/sbin/modprobe keyboard_module"

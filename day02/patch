@@ -1,0 +1,11 @@
+--- linux-4.20.12/Makefile.orig	2019-04-14 20:52:03.607101015 +0000
++++ linux-4.20.12/Makefile	2019-04-14 21:14:48.715152420 +0000
+@@ -2,7 +2,7 @@
+ VERSION = 4
+ PATCHLEVEL = 20
+ SUBLEVEL = 12
+-EXTRAVERSION =
++EXTRAVERSION = -agrum-thor_kernel
+ NAME = Shy Crocodile
+ 
+ # *DOCUMENTATION*
