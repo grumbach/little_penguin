@@ -1,20 +1,18 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/init.h>
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
-#include <linux/slab.h>
-#include <asm/uaccess.h>
+#include <asm/uaccess.h>       /* needed for raw copy */
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Louis Solofrizzo <louis@ne02ptzero.me>");
-MODULE_DESCRIPTION("...");
+MODULE_DESCRIPTION("Useless module");
 
-static ssize_t myfd_read(structfile *fp,
+static ssize_t myfd_read(struct file *fp,
 			 char __user *user,
 			 size_t size,
 			 loff_t *offs);
-static ssize_t myfd_write(structfile *fp,
+static ssize_t myfd_write(struct file *fp,
 			  const char __user *user,
 			  size_t size,
 			  loff_t *offs);
@@ -51,20 +49,34 @@ static ssize_t myfd_read(struct file *fp,
 			 size_t size,
 			 loff_t *offs)
 {
-	
-	return size;
+	const size_t	len = strlen(str) + 1;
+
+	if (user == NULL)
+		goto fail;
+	if (size > len)
+		size = len;
+	return raw_copy_to_user(user, str, size);
+
 fail:
-	return -1;
+	return -EINVAL;
 }
 
-static size_t myfd_write(structfile *fp,
-			 const char __user *user,
-			 size_t size,
-			 loff_t *offs)
+static ssize_t myfd_write(struct file *fp,
+			  const char __user *user,
+			  size_t size,
+			  loff_t *offs)
 {
-	return size;
+	size_t		ret;
+
+	if (user == NULL)
+		goto fail;
+	if (size >= PAGE_SIZE)
+		size = PAGE_SIZE - 1;
+	ret = raw_copy_from_user(str, user, size);
+	str[size] = '\0';
+	return ret;
 fail:
-	return -1;
+	return -EINVAL;
 }
 
 module_init(myfd_init);
