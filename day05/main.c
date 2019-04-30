@@ -39,7 +39,7 @@ static ssize_t ft_read(struct file *filp,
 		       size_t size,
 		       loff_t *pos)
 {
-	if (filp == (struct file *)0 || buf == (char *)0)
+	if (filp == NULL || buf == NULL)
 		return -1;
 	if (size > LOGIN_LEN)
 		size = LOGIN_LEN;
@@ -54,7 +54,7 @@ static ssize_t ft_write(struct file *filp,
 			size_t size,
 			loff_t *pos)
 {
-	if (filp == (struct file *)0 || buf == (char *)0)
+	if (filp == NULL || buf == NULL)
 		return -1;
 	if (memcmp(buf, LOGIN, LOGIN_LEN))
 		return -1;
