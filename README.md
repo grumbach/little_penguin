@@ -143,3 +143,4 @@ ls -lh --color /boot/vmlinuz-$VERSION_NUMBER-agrumbac
 * [Matching specific usb devices](https://kernel.readthedocs.io/en/sphinx-samples/usb.html#c.usb_match_id)
 * [Misc character devices](https://www.linuxjournal.com/article/2920)
 * [Install linux-next](https://www.kernel.org/doc/man-pages/linux-next.html)
+* [About debugfs](https://lwn.net/Articles/115282/)
