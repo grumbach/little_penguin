@@ -7,11 +7,8 @@
 #define LOGIN "jye"
 #define LOGIN_LEN 3
 
-typedef struct miscdevice mdev_t;
-typedef struct file_operations fops_t;
-
-static miscdevice _mdev;
-static file_operations _fops;
+static struct miscdevice _mdev;
+static struct file_operations _fops;
 
 static ssize_t ft_read(struct file *, char __user *, size_t, loff_t *);
 static ssize_t ft_write(struct file *, const char __user *, size_t, loff_t *);
@@ -28,10 +25,12 @@ static struct file_operations _fops = {
 	.write = &ft_write,
 };
 
+static char id_buffer[PAGE_SIZE];
+
 static ssize_t ft_read(struct file *filp,	\
 		       char __user *buf,	\
 		       size_t size,		\
-		       loff_t *pos)
+		       loff_t *ppos)
 {
 	ssize_t res;
 
