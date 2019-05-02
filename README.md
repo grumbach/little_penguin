@@ -90,6 +90,12 @@ MODULE_PARM_DESC(str, "A character string");
 insmod hello.ko str="hello world" integer=42
 ```
 
+### Check Linux Coding Style
+
+```bash
+/sources/linux/scripts/checkpatch.pl --no-tree --strict -f sleep_module.c
+```
+
 ### Watch Kernel logs
 
 ```bash
