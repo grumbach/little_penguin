@@ -7,7 +7,7 @@ static int      make_nap(int length)
 {
 	for (int i = 0; i < length; i++)
 		udelay(10);
-	if (length < 10) 
+	if (length < 10)
 		pr_info("We slept a long time!");
 
 	return length * length;
