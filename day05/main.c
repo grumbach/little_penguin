@@ -7,49 +7,67 @@
 #define LOGIN "jye"
 #define LOGIN_LEN 3
 
-typedef struct miscdevice	mdev_t;
-typedef struct file_operations	fops_t;
+typedef struct miscdevice mdev_t;
+typedef struct file_operations fops_t;
 
-static mdev_t	_mdev;
-static fops_t	_fops;
+static miscdevice _mdev;
+static file_operations _fops;
 
 static ssize_t ft_read(struct file *, char __user *, size_t, loff_t *);
 static ssize_t ft_write(struct file *, const char __user *, size_t, loff_t *);
 
-static mdev_t	_mdev = {
+static struct miscdevice _mdev = {
 	.minor = MISC_DYNAMIC_MINOR,
 	.name = "fortytwo",
 	.fops = &_fops,
 };
 
-static fops_t	_fops = {
+static struct file_operations _fops = {
 	.owner = THIS_MODULE,
 	.read = &ft_read,
 	.write = &ft_write,
 };
 
-static ssize_t ft_read(struct file *filp, char __user *buf, size_t size, loff_t *pos)
+static ssize_t ft_read(struct file *filp,	\
+		       char __user *buf,	\
+		       size_t size,		\
+		       loff_t *pos)
 {
-	if (filp == (struct file *)0 || \
-	    buf == (char *)0)
-		return -1;
-	if (size > LOGIN_LEN)
-		size = LOGIN_LEN;
-	pos += LOGIN_LEN;
-	if (raw_copy_to_user(buf, LOGIN, LOGIN_LEN))
-		return -1;
-	return LOGIN_LEN;
+	ssize_t res;
+
+	if (buf == (char *)0)
+		goto einval;
+
+	res = simple_read_from_buffer(buf, size, ppos, LOGIN, LOGIN_LEN);
+	if (res == 0 && *ppos == 3)
+		*ppos = 0;
+	return res;
+einval:
+	return -EINVAL;
 }
 
-static ssize_t ft_write(struct file *filp, const char __user *buf, size_t size, loff_t *pos)
+static ssize_t ft_write(struct file *filp,	\
+			const char __user *buf,	\
+			size_t size,		\
+			loff_t *ppos)
 {
-	
-	if (filp == (struct file *)0 || \
-	    buf == (char *)0)
-		return -1;
-	if (memcmp(buf, LOGIN, LOGIN_LEN))
-		return -1;
-	pos += LOGIN_LEN;
+	ssize_t res;
+
+	if (buf == (char *)0 || size > LOGIN_LEN)
+		goto einval;
+
+	res = simple_write_to_buffer(id_buffer, LOGIN_LEN, ppos, buf, size);
+	if (res > 0 && *ppos == 3) {
+		*ppos = 0;
+		if (memcmp(id_buffer, LOGIN, LOGIN_LEN) == 0)
+			goto success;
+		else
+			goto einval;
+	}
+	return res;
+einval:
+	return -EINVAL;
+success:
 	return LOGIN_LEN;
 }
 
