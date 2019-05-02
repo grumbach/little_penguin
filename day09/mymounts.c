@@ -3,107 +3,192 @@
 #include <linux/fs.h>
 #include <linux/fs_struct.h>
 #include <linux/mount.h>
+#include <linux/slab.h>
 #include <linux/proc_fs.h>
-
-#define PROCFS_NAME	"mymounts"
+#include <linux/nsproxy.h>
+#include <../fs/mount.h>
+#include <asm/uaccess.h>       /* needed for raw copy */
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("agrumbac");
+MODULE_AUTHOR("jye");
 MODULE_DESCRIPTION("This module lists mount points on your system");
 
-static ssize_t	procfile_read(struct file *filename,
-			      char __user *buffer,
-			      size_t buffer_length,
-			      loff_t *off);
+#define PROCFS_NAME 		"mymounts"
 
-static struct proc_dir_entry		*proc_file_entry;
-static const struct file_operations	mymounts_fops = {
+#define maybe_xkrealloc(needed, ptr, label)				\
+	if ((needed) > proc_allocsize) {				\
+		xkrealloc();						\
+		if (_proc_state)					\
+			goto label;					\
+		ptr = memmove(proc_buffer - proc_len, (ptr), proc_len);	\
+	}
+
+static ssize_t _proc_read(struct file *, char __user *, size_t, loff_t *);
+static int _proc_release(struct inode *, struct file *);
+static int _proc_open(struct inode *, struct file *);
+
+static struct file_operations p_fops = {
+	.read = _proc_read,
+	.open = _proc_open,
+	.release = _proc_release,
 	.owner = THIS_MODULE,
-	.read = procfile_read,
 };
-static int				are_we_empty = true;
 
-static void	push_entry_to_buffer(char **buffer,
-				     struct dentry *curdentry,
-				     const char *mount_point,
-				     size_t buffer_len)
+static struct proc_dir_entry *pdent;
+
+static char __kernel *proc_buffer;
+static size_t proc_len;
+static size_t proc_allocsize;
+
+static int _proc_lock;
+static int _proc_state;
+
+/*
+ * moves from child to parents appending every path he founds
+*/
+
+static void xkrealloc(void)
 {
-	const char      *entry_name = \
-		(mount_point ? (char *)curdentry->d_name.name : "root");
-	const size_t    entry_len = strlen(entry_name);
+	void *tmp = krealloc(proc_buffer, PAGE_SIZE + proc_allocsize, GFP_KERNEL);
+	
+	_proc_state = -(NULL == tmp);
 
-	if (buffer_len < entry_len * 2 + 4)
-		return ;
-	memcpy(*buffer, entry_name, entry_len);
-	*buffer += entry_len;
-	memcpy(*buffer, "\t", 1);
-	*buffer += 1;
-	if (mount_point)
-	{
-		const size_t	mount_len = strlen(mount_point);
-		memcpy(*buffer, mount_point, mount_len);
-		*buffer += mount_len;
-		memcpy(*buffer, entry_name, entry_len);
-		*buffer += entry_len;
-	} else {	
-		memcpy(*buffer, "/", 1);
-		*buffer += 1;
-	}
-	memcpy(*buffer, "\n", 1);
-	*buffer += 1;
-}	
-
-static ssize_t	procfile_read(struct file *filename,
-			      char __user *buffer,
-			      size_t buffer_length,
-			      loff_t *off)
-{
-	const char	*buffer_start = buffer;
-	struct dentry	*curdentry;
-
-	printk(KERN_INFO "procfile_read (/proc/%s) called\n", PROCFS_NAME);
-	are_we_empty ^= 0x1;
-
-	if (are_we_empty == true)
-		goto empty;
-
-	curdentry = current->fs->root.mnt->mnt_root;
-	push_entry_to_buffer(&buffer, curdentry, NULL, buffer_length);	
-
-	list_for_each_entry(curdentry, \
-		&current->fs->root.mnt->mnt_root->d_subdirs, d_child)
-	{
-		if (curdentry->d_flags & DCACHE_MOUNTED)
-			push_entry_to_buffer(&buffer, curdentry, "/", \
-				buffer_length - (buffer - buffer_start));
-	}
-	*buffer = '\0';
-	return buffer - buffer_start;
-
-empty:
-	return 0;
+	proc_buffer = tmp;
+	proc_allocsize += PAGE_SIZE;
 }
 
-static int __init myfd_init(void)
+static char *reverse_traversal(struct dentry *dir)
 {
-	proc_file_entry = proc_create(PROCFS_NAME, 0444, NULL, &mymounts_fops);
+	struct dentry *parent = (struct dentry *)0;
+	size_t dname_len;
+	const char *dname;
+	char __kernel *ptr = proc_buffer + proc_allocsize - proc_len;
 
-	if(proc_file_entry == NULL)
-		goto fail;
+	for (; parent != dir->d_parent; parent = dir->d_parent, dir = dir->d_parent) {
+		dname = dir->d_name.name;
+		dname_len = strlen(dname) + 1;
 
-	printk(KERN_INFO "/proc/%s created\n", PROCFS_NAME);
-	return 0;
+		maybe_xkrealloc(dname_len + proc_len, ptr, fail);
 
+		ptr -= dname_len;
+		memcpy(&ptr[1], dname, dname_len - 1);
+
+		if (dir->d_parent != dir) {
+			ptr[0] = '/';
+		} else {
+			dname_len--;
+			ptr++;
+		}
+		proc_len += dname_len;
+	}
+	return ptr;
 fail:
-	remove_proc_entry(PROCFS_NAME, NULL);
-	printk(KERN_ALERT "Error: failed init /proc/%s\n", PROCFS_NAME);
+	return (char *)0;
+}
+
+
+static void	prepare_output(struct mount *mnt)
+{
+	struct mountpoint *mnt_mp = mnt->mnt_mp;
+	const char *devname = mnt->mnt_devname;
+	size_t devname_len = strlen(devname);
+	char *ptr;
+	
+	if (mnt_mp == (struct mountpoint *)0)
+		goto end;
+
+	ptr = reverse_traversal(mnt_mp->m_dentry);
+	if (_proc_state)
+		goto end;
+
+	maybe_xkrealloc(devname_len + proc_len + 1, ptr, end);
+
+	ptr[-1] = ' ';
+	ptr = memcpy(ptr - devname_len - 1, devname, devname_len);
+	proc_len += devname_len + 2;
+	ptr[-1] = '\n';
+end:
+	return ;
+}
+
+static ssize_t _proc_read(struct file *filp,
+			  char __user *buf,
+			  size_t size,
+			  loff_t *pos)
+{
+	if (_proc_state)
+		goto critical;
+
+	return simple_read_from_buffer(buf, size, pos, proc_buffer + proc_allocsize - proc_len, proc_len);
+critical:
 	return -ENOMEM;
 }
 
-static void __exit myfd_cleanup(void)
+
+/*
+ * Prepare mymounts buffer, in reverse order because too lazy
+*/
+
+static int _proc_open(struct inode *inodep, struct file *filp)
+{
+	const size_t psize = sizeof(char) * PAGE_SIZE;
+	struct mnt_namespace *ns = current->nsproxy->mnt_ns;
+	struct mount *mnt;
+
+	if (_proc_lock)
+		goto ebusy;
+
+	proc_buffer = kmalloc(psize, GFP_KERNEL);
+	if (proc_buffer == (char *)0)
+		goto enomem;
+
+	proc_allocsize = psize;
+	proc_buffer[proc_allocsize - 1] = '\n';
+	proc_len = 1;
+	_proc_lock = 1;
+	_proc_state = 0;
+
+	list_for_each_entry(mnt, &ns->list, mnt_list) {
+		prepare_output(mnt);
+
+		if (_proc_state)
+			goto enomem;
+	}
+
+	proc_len -= 1;
+
+	return 0;
+ebusy:
+	return -EBUSY;
+enomem:
+	return -ENOMEM;
+}
+
+static int _proc_release(struct inode *inodep, struct file *filp)
+{
+	kfree(proc_buffer);
+	proc_buffer = (char *)0;
+	proc_allocsize = 0;
+	_proc_lock = 0;
+	return 0;
+}
+
+static int __init _proc_init(void)
+{
+	pdent = proc_create(PROCFS_NAME, 0444, NULL, &p_fops);
+	if (pdent == (struct proc_dir_entry *)0)
+		goto fail_alloc;
+
+	return 0;
+fail_alloc:
+	remove_proc_entry(PROCFS_NAME, NULL);
+	return -ENOMEM;
+}
+
+static void __exit _proc_cleanup(void)
 {
 	remove_proc_entry(PROCFS_NAME, NULL);
 }
 
-module_init(myfd_init);
-module_exit(myfd_cleanup);
+module_init(_proc_init);
+module_exit(_proc_cleanup);
