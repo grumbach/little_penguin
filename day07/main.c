@@ -7,24 +7,14 @@
 #include <linux/gfp.h>		/* Needed for allocation flags */
 #include <asm/uaccess.h>
 
-#define DENTRY_NULL ((dentry_t *)0)
+#define DENTRY_NULL ((struct dentry *)0)
 
 #define LOGIN "jye"
 #define LOGIN_LEN 3
 
-typedef struct dentry dentry_t;
-typedef struct file_operations fops_t;
 
 /* directory debugfs */
-static dentry_t *dentry;
-/* file debugfs */
-#ifndef __CIVILLIZED_TIME
-static dentry_t *_jiffies;
-static dentry_t *foo;
-static dentry_t *id;
-#endif
-
-static ssize_t jif_read(struct file *, char __user *, size_t, loff_t *);
+static struct dentry *dir;
 
 static ssize_t foo_write(struct file *, const char __user *, size_t, loff_t *);
 static ssize_t foo_read(struct file *, char __user *, size_t, loff_t *);
@@ -32,157 +22,140 @@ static ssize_t foo_read(struct file *, char __user *, size_t, loff_t *);
 static ssize_t id_write(struct file *,const char __user *, size_t, loff_t *);
 static ssize_t id_read(struct file *, char __user *, size_t, loff_t *);
 
-static fops_t jif_ops = {
-	.owner = THIS_MODULE,
-	.read = jif_read,
-};
-
-static fops_t foo_ops = {
+static const struct file_operations foo_ops = {
 	.owner = THIS_MODULE,
 	.read = foo_read,
 	.write = foo_write,
 };
 
-static fops_t id_ops = {
+static const struct file_operations id_ops = {
 	.owner = THIS_MODULE,
 	.read = id_read,
 	.write = id_write,
 };
 
-static u8 *fookbuf;
-static u64 fookbuf_size;
+static char id_buffer[PAGE_SIZE];
+static u8 fookbuf[PAGE_SIZE];
 static u64 fookbuf_used;
 
 static DEFINE_SPINLOCK(x_lock);
 
-static ssize_t foo_read(						\
-	struct file *filp, char __user *buf, size_t size, loff_t *pos)
+static ssize_t foo_read(struct file *filp,	\
+			char __user *buf,	\
+			size_t size,		\
+			loff_t *ppos)
 {
-	if (filp == (struct file *)0 ||		\
-	    buf == (char *)0)
-		return -1;
+	ssize_t res;
+
+	if (buf == (char *)0)
+		goto einval;
+
 	spin_lock(&x_lock);
-	if (fookbuf_used < size)
-		size = fookbuf_used;
-	if (size == 0)
-		goto end;
-	if (raw_copy_to_user(buf, fookbuf, size))
-		return -1;
-	pos += size;
-end:
+	res = simple_read_from_buffer(buf, size, ppos, fookbuf, fookbuf_used);
+
+	spin_unlock(&x_lock);
+	return res;
+einval:
+	return -EINVAL;
+}
+
+static ssize_t foo_write(struct file *filp,		\
+			 const char __user *buf,	\
+			 size_t size,			\
+			 loff_t *ppos)
+{
+	ssize_t res;
+
+	if (buf == (char *)0)
+		goto einval;
+
+	spin_lock(&x_lock);
+	res = simple_write_to_buffer(fookbuf, PAGE_SIZE, ppos, buf, size);
+
+	if (res > 0)
+		fookbuf_used += res;
+
 	spin_unlock(&x_lock);
 	return size;
+einval:
+	return -EINVAL;
 }
 
-static ssize_t foo_write(						\
-	struct file *filp, const char __user *buf, size_t size, loff_t *pos)
+static ssize_t id_read(struct file *filp,	\
+		       char __user *buf,	\
+		       size_t size,		\
+		       loff_t *ppos)
 {
-	const ssize_t _avail = (fookbuf_size - fookbuf_used);
+	ssize_t res;
 
-	if (filp == (struct file *)0 ||		\
-	    buf == (char *)0)
-		return -1;
-	spin_lock(&x_lock);
-	if (_avail < size)
-		size = _avail;
-	if (size == 0)
-		goto end;
-	if (raw_copy_from_user(fookbuf + fookbuf_used, buf, size))
-		return -1;
-	fookbuf_used += size;
-	pos += size;
-end:
-	spin_unlock(&x_lock);
-	return size;
+	if (buf == (char *)0)
+		goto einval;
+
+	res = simple_read_from_buffer(buf, size, ppos, LOGIN, LOGIN_LEN);
+	if (res == 0 && *ppos == 3)
+		*ppos = 0;
+	return res;
+einval:
+	return -EINVAL;
 }
 
-static ssize_t jif_read(						\
-	struct file *filp, char __user *buf, size_t size, loff_t *pos)
+static ssize_t id_write(struct file *filp,	\
+			const char __user *buf,	\
+			size_t size,		\
+			loff_t *ppos)
 {
-	u64 _jif;
+	ssize_t res;
 
-	if (filp == (struct file *)0 ||		\
-	    buf == (char *)0)
-		return -1;
-	if (size > sizeof(u64))
-		size = sizeof(u64);
-	_jif = get_jiffies_64();
-	if (raw_copy_to_user(buf, &_jif, size))
-		return -1;
-	return size;
-}
+	if (buf == (char *)0 || size > LOGIN_LEN)
+		goto einval;
 
-static ssize_t id_read(							\
-	struct file *filp, char __user *buf, size_t size, loff_t *pos)
-{
-	if (filp == (struct file *)0 ||		\
-	    buf == (char *)0)
-		return -1;
-	if (size > LOGIN_LEN)
-		size = LOGIN_LEN;
-	pos += LOGIN_LEN;
-	if (raw_copy_to_user(buf, LOGIN, LOGIN_LEN))
-		return -1;
-	return LOGIN_LEN;
-}
-
-static ssize_t id_write(						\
-	struct file *filp, const char __user *buf, size_t size, loff_t *pos)
-{
-	if (filp == (struct file *)0 || \
-	    buf == (char *)0)
-		return -1;
-	if (memcmp(buf, LOGIN, LOGIN_LEN))
-		return -1;
-	pos += LOGIN_LEN;
+	res = simple_write_to_buffer(id_buffer, LOGIN_LEN, ppos, buf, size);
+	if (res > 0 && *ppos == 3) {
+		*ppos = 0;
+		if (memcmp(id_buffer, LOGIN, LOGIN_LEN) == 0)
+			goto success;
+		else
+			goto einval;
+	}
+	return res;
+einval:
+	return -EINVAL;
+success:
 	return LOGIN_LEN;
 }
 
 static int __init init_hello(void)
 {
-#ifdef __CIVILIZED_TIME
-	dentry_t *_jiffies;
-	dentry_t *foo;
-	dentry_t *id;
-#endif
+	struct dentry *_jiffies;
+	struct dentry *foo;
+	struct dentry *id;
 
-	dentry = debugfs_create_dir("fortytwo", DENTRY_NULL);
-	if (dentry == DENTRY_NULL || dentry == ERR_PTR(-ENODEV))
-		return -ENODEV;
-	fookbuf_size = PAGE_SIZE;
-	fookbuf = kmalloc(fookbuf_size, GFP_KERNEL);
-	if (fookbuf == (void *)0)
-		goto fail_alloc;
-	_jiffies = debugfs_create_file("jiffies", 0444, dentry, 0, &jif_ops);
-	foo = debugfs_create_file("foo", 0644, dentry, 0, &foo_ops);
-	id = debugfs_create_file("id", 0666, dentry, 0, &id_ops);
+	dir = debugfs_create_dir("fortytwo", DENTRY_NULL);
+	if (dir == DENTRY_NULL || dir == ERR_PTR(-ENODEV))
+		goto enodev;
+
+	_jiffies = debugfs_create_u64("jiffies", 0444, dir, &jiffies_64);
+	foo = debugfs_create_file("foo", 0644, dir, 0, &foo_ops);
+	id = debugfs_create_file("id", 0666, dir, 0, &id_ops);
 	if (_jiffies == DENTRY_NULL ||		\
 	    id == DENTRY_NULL ||		\
 	    foo == DENTRY_NULL)
 		goto fail_file;
-	return 0;
 
+	return 0;
+enodev:
+	return -ENODEV;
 fail_file:
-	kfree(fookbuf);
-	debugfs_remove_recursive(dentry);
-fail_alloc:
-	debugfs_remove(dentry);
-	return -1;
+	debugfs_remove_recursive(dir);
+	debugfs_remove(dir);
+	return -ENOMEM;
 }
 module_init(init_hello);
 
 static void __exit clean_hello(void)
 {
-#ifdef __CIVILIZED_TIME
-	debugfs_remove_recursive(dentry);
-#else
-	debugfs_remove(_jiffies);
-	debugfs_remove(foo);
-	debugfs_remove(id);
-#endif
-	debugfs_remove(dentry);
-	kfree(fookbuf);
-	printk(KERN_NOTICE "Cleaning up module.\n");
+	debugfs_remove_recursive(dir);
+	debugfs_remove(dir);
 }
 module_exit(clean_hello);
 
