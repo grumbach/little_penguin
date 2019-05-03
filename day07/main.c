@@ -105,23 +105,25 @@ static ssize_t id_write(struct file *filp,	\
 			loff_t *ppos)
 {
 	ssize_t res;
+	loff_t porign = *ppos;
 
 	if (buf == (char *)0 || size > LOGIN_LEN)
 		goto einval;
 
 	res = simple_write_to_buffer(id_buffer, LOGIN_LEN, ppos, buf, size);
-	if (res > 0 && *ppos == 3) {
-		*ppos = 0;
-		if (memcmp(id_buffer, LOGIN, LOGIN_LEN) == 0)
+	if (res > 0) {
+		if (memcmp(id_buffer + porign, LOGIN + porign, res) == 0)
 			goto success;
 		else
 			goto einval;
 	}
-	return res;
 einval:
+	*ppos = 0;
 	return -EINVAL;
 success:
-	return LOGIN_LEN;
+	if (*ppos >= LOGIN_LEN)
+		*ppos = 0;
+	return res;
 }
 
 static int __init init_hello(void)

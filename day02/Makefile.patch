@@ -1,0 +1,13 @@
+diff --git Makefile Makefile
+index abe13538a8c0..b63792355feb 100644
+--- Makefile
++++ Makefile
+@@ -2,7 +2,7 @@
+ VERSION = 5
+ PATCHLEVEL = 1
+ SUBLEVEL = 0
+-EXTRAVERSION = -rc6
++EXTRAVERSION = -rc6-thor_kernel
+ NAME = Shy Crocodile
+ 
+ # *DOCUMENTATION*

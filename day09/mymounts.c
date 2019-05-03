@@ -70,6 +70,7 @@ static char *reverse_traversal(struct dentry *dir)
 
 		maybe_xkrealloc(dname_len + proc_len, ptr, fail);
 
+		printk(KERN_INFO "parent-> %s cur-> %s\n", dir->d_parent->d_name.name, dir->d_name.name);
 		ptr -= dname_len;
 		memcpy(&ptr[1], dname, dname_len - 1);
 
