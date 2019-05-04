@@ -38,7 +38,7 @@ static char id_buffer[PAGE_SIZE];
 static u8 fookbuf[PAGE_SIZE];
 static u64 fookbuf_used;
 
-static DEFINE_SPINLOCK(x_lock);
+static DEFINE_SPINLOCK(spinlock);
 
 static ssize_t foo_read(struct file *filp,	\
 			char __user *buf,	\
@@ -126,7 +126,7 @@ success:
 	return res;
 }
 
-static int __init init_hello(void)
+static int __init	init_debugfs_module(void)
 {
 	struct dentry *_jiffies;
 	struct dentry *foo;
@@ -152,15 +152,16 @@ fail_file:
 	debugfs_remove(dir);
 	return -ENOMEM;
 }
-module_init(init_hello);
 
-static void __exit clean_hello(void)
+static void __exit exit_debugfs_module(void)
 {
 	debugfs_remove_recursive(dir);
 	debugfs_remove(dir);
 }
-module_exit(clean_hello);
+
+module_init(init_debugfs_module);
+module_exit(exit_debugfs_module);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("jye");
+MODULE_AUTHOR("agrumbac");
 MODULE_DESCRIPTION("some virtual file system");
