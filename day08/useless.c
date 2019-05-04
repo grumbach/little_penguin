@@ -2,6 +2,7 @@
 #include <linux/kernel.h>
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
+#include <linux/slab.h>
 #include <asm/uaccess.h>       /* needed for raw copy */
 
 MODULE_LICENSE("GPL");
@@ -49,20 +50,28 @@ static ssize_t myfd_read(struct file *fp,
 			 size_t size,
 			 loff_t *offs)
 {
-	const size_t	len = strlen(str) + 1;
+	ssize_t	t, i;
+	ssize_t	ret;
+	char *tmp;
 
 	if (user == NULL)
 		goto fail;
-	if (size > len)
-		size = len;
-	if (raw_copy_to_user(user, str, size))
-		goto copyfail;
 
-	return size;
+	tmp = kmalloc(sizeof(char) * PAGE_SIZE * 2, GFP_KERNEL);
+	if (!tmp)
+		goto enomem;
+
+	for (t = strlen(str) - 1, i = 0; t >= 0; t--, i++)
+		tmp[i] = str[t];
+
+	ret = simple_read_from_buffer(user, size, offs, tmp, i);
+	kfree(tmp);
+
+	return ret;
 fail:
 	return -EINVAL;
-copyfail:
-	return -1;
+enomem:
+	return -ENOMEM;
 }
 
 static ssize_t myfd_write(struct file *fp,
@@ -70,19 +79,17 @@ static ssize_t myfd_write(struct file *fp,
 			  size_t size,
 			  loff_t *offs)
 {
+	ssize_t res;
+
 	if (user == NULL)
 		goto fail;
-	if (size >= PAGE_SIZE)
-		size = PAGE_SIZE - 1;
-	if (raw_copy_from_user(str, user, size))
-		goto copyfail;
+
+	res = simple_write_to_buffer(str, PAGE_SIZE - 1, offs, user, size) + 1;
 
 	str[size] = '\0';
-	return size;
+	return res;
 fail:
 	return -EINVAL;
-copyfail:
-	return -1;
 }
 
 module_init(myfd_init);
